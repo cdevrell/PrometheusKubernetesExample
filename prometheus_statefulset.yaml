@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus
+  namespace: monitoring-metrics
+spec:
+  serviceName: prometheus
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        imagePullPolicy: Always
+        args:
+          - "--config.file=/etc/prometheus/config/prometheus.yml"
+          - "--storage.tsdb.path=/prometheus/"
+          - "--storage.tsdb.retention.time=60d"
+          - "--storage.tsdb.max-block-duration=2h"
+          - "--storage.tsdb.min-block-duration=2h"
+          - "--storage.tsdb.no-lockfile"
+          - "--web.enable-lifecycle"
+          - "--web.enable-admin-api"
+          - "--enable-feature=expand-external-labels"
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+        ports:
+        - containerPort: 9090
+          name: prometheus
+        volumeMounts:
+          - mountPath: /etc/prometheus/config/
+            name: prometheus-config
+          - mountPath: /prometheus
+            name: prometheus-data
+      volumes:
+        - name: prometheus-config
+          configMap:
+              name: prometheus-config
+        - name: prometheus-data
+          hostPath: ##TODO: Change Me
+            path: /mnt/monitoring/prometheus/data
+      serviceAccountName: prometheus
